@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مدير المصروفات</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>تسجيل المصاريف</h1>
+    <form id="expenseForm">
+      <input type="number" id="amount" placeholder="المبلغ" required>
+      <input type="text" id="note" placeholder="الملاحظة" required>
+      <button type="submit">إضافة</button>
+    </form>
+    <table id="expensesTable">
+      <thead>
+        <tr>
+          <th>التاريخ</th>
+          <th>المبلغ</th>
+          <th>الملاحظة</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <canvas id="expensesChart" width="400" height="200"></canvas>
+    <button onclick="printExpenses()">طباعة التقرير</button>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
