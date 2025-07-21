@@ -9,18 +9,20 @@ function getExpenses() {
   return JSON.parse(localStorage.getItem('expenses')) || [];
 }
 
-function addExpenseToTable({ date, amount, note }) {
+function addExpenseToTable({ datetime, amount, note }) {
   const row = table.insertRow();
-  row.innerHTML = `<td>${date}</td><td>${amount}</td><td>${note}</td>`;
+  row.innerHTML = `<td>${datetime}</td><td>${amount}</td><td>${note}</td>`;
 }
 
 form.onsubmit = function (e) {
   e.preventDefault();
   const amount = document.getElementById('amount').value;
   const note = document.getElementById('note').value;
-  const date = new Date().toLocaleDateString('ar-SA');
 
-  const expense = { date, amount: parseFloat(amount), note };
+  const now = new Date();
+  const datetime = now.toLocaleString('ar-SA'); // تاريخ ووقت
+
+  const expense = { datetime, amount: parseFloat(amount), note };
   const expenses = getExpenses();
   expenses.push(expense);
   saveExpenses(expenses);
@@ -40,15 +42,16 @@ function printExpenses() {
   window.print();
 }
 
-// Chart logic
+// 🎯 رسم بياني للمصاريف اليومية فقط حسب التاريخ
 let chart;
 
 function updateChart(expenses) {
   const dailyTotals = {};
 
   expenses.forEach(exp => {
-    if (!dailyTotals[exp.date]) dailyTotals[exp.date] = 0;
-    dailyTotals[exp.date] += exp.amount;
+    const date = exp.datetime.split(",")[0]; // نأخذ التاريخ فقط من التاريخ والوقت
+    if (!dailyTotals[date]) dailyTotals[date] = 0;
+    dailyTotals[date] += exp.amount;
   });
 
   const labels = Object.keys(dailyTotals);
