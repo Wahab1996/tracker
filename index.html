@@ -2,32 +2,226 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=0.85, maximum-scale=1.0, user-scalable=no">
-  <title>مدير المصروفات</title>
-  <link rel="stylesheet" href="style.css">
+  <title>تتبع المصروفات</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      direction: rtl;
+      padding: 30px;
+      background: #f0f2f5;
+      color: #333;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #444;
+    }
+
+    .form-section, .summary-section, .button-group {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+
+    #dailyTotal, #totalSum {
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+
+    #chart {
+      margin-top: 30px;
+    }
+
+    @media print {
+      .form-section, #dailyTotal, .button-group {
+        display: none;
+      }
+
+      body {
+        background: white;
+      }
+
+      .summary-section {
+        box-shadow: none;
+        border: none;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>تسجيل المصاريف</h1>
-    <form id="expenseForm">
-      <input type="number" id="amount" placeholder="المبلغ" required>
-      <input type="text" id="note" placeholder="الملاحظة" required>
-      <button type="submit">إضافة</button>
-    </form>
-    <table id="expensesTable">
+
+  <h1>نظام تتبع المصروفات</h1>
+
+  <div class="form-section">
+    <input type="date" id="dateInput">
+    <input type="text" id="descInput" placeholder="الوصف">
+    <input type="number" id="amountInput" placeholder="المبلغ">
+    <button onclick="addExpense()">إضافة</button>
+  </div>
+
+  <div class="summary-section">
+    <h2>جدول المدخلات</h2>
+    <table>
       <thead>
         <tr>
           <th>التاريخ</th>
+          <th>الوصف</th>
           <th>المبلغ</th>
-          <th>الملاحظة</th>
+          <th>حذف</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="expensesTable"></tbody>
     </table>
-    <canvas id="expensesChart" width="400" height="200"></canvas>
-    <button onclick="printExpenses()">طباعة التقرير</button>
+
+    <div id="dailyTotal">إجمالي مصروفات اليوم: 0 ريال</div>
+    <canvas id="chart" height="100"></canvas>
+    <div id="totalSum">إجمالي المصروفات الكلي: 0 ريال</div>
   </div>
-  <script src="script.js"></script>
+
+  <div class="button-group" style="text-align: center;">
+    <button onclick="window.print()">🖨️ طباعة</button>
+    <button onclick="clearExpenses()" style="background-color:#e74c3c;">🗑️ تصفير البيانات</button>
+  </div>
+
+  <script>
+    let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+
+    function saveExpenses() {
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+    }
+
+    function renderExpenses() {
+      const table = document.getElementById("expensesTable");
+      table.innerHTML = "";
+      expenses.forEach((exp, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${exp.date}</td>
+          <td>${exp.desc}</td>
+          <td>${exp.amount} ريال</td>
+          <td><button onclick="deleteExpense(${index})" style="background:#e74c3c;">حذف</button></td>
+        `;
+        table.appendChild(tr);
+      });
+
+      updateDailyTotal();
+      updateTotalSum();
+      renderChart();
+    }
+
+    function addExpense() {
+      const date = document.getElementById("dateInput").value;
+      const desc = document.getElementById("descInput").value;
+      const amount = parseFloat(document.getElementById("amountInput").value);
+      if (date && desc && !isNaN(amount)) {
+        expenses.push({ date, desc, amount });
+        saveExpenses();
+        renderExpenses();
+        document.getElementById("descInput").value = '';
+        document.getElementById("amountInput").value = '';
+      }
+    }
+
+    function deleteExpense(index) {
+      expenses.splice(index, 1);
+      saveExpenses();
+      renderExpenses();
+    }
+
+    function updateDailyTotal() {
+      const today = new Date().toISOString().split("T")[0];
+      const total = expenses
+        .filter(e => e.date === today)
+        .reduce((sum, e) => sum + e.amount, 0);
+      document.getElementById("dailyTotal").textContent = `إجمالي مصروفات اليوم: ${total} ريال`;
+    }
+
+    function updateTotalSum() {
+      const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+      document.getElementById("totalSum").textContent = `إجمالي المصروفات الكلي: ${total} ريال`;
+    }
+
+    function renderChart() {
+      const daily = {};
+      expenses.forEach(e => {
+        if (!daily[e.date]) daily[e.date] = 0;
+        daily[e.date] += e.amount;
+      });
+
+      const labels = Object.keys(daily).sort();
+      const data = labels.map(date => daily[date]);
+
+      if (window.myChart) window.myChart.destroy();
+
+      const ctx = document.getElementById("chart").getContext("2d");
+      window.myChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "المصروفات اليومية",
+            data: data,
+            backgroundColor: "#4CAF50"
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function clearExpenses() {
+      if (confirm("هل أنت متأكد من تصفير جميع البيانات؟")) {
+        expenses = [];
+        saveExpenses();
+        renderExpenses();
+      }
+    }
+
+    renderExpenses();
+  </script>
+
 </body>
 </html>
